@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "<e.g. esper-sam-auto-app-updater>"
+s3_bucket = "<e.g. acme-sam-bucket>"
+s3_prefix = "<e.g. esper-sam-auto-app-updater>"
+region = "<e.g. us-west-2>"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+

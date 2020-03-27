@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  esper-sam-auto-app-updater
+
+  Sample SAM Template for esper-sam-auto-app-updater
+
+Parameters:
+  EndpointName:
+    Description: The name of the endpoint. e.g. If your access URL is `demo.esper.cloud`, use `demo` here
+    Type: String
+  ApiKey:
+    Description: The API key of your endpoint
+    Type: String
+  EnterpriseId:
+    Description: The Enterprise ID of your endpoint
+    Type: String
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  EsperSamAutoAppUpdaterFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: esper-sam-auto-app-updater-python/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          EP_NAME: !Ref EndpointName
+          API_KEY: !Ref ApiKey
+          ENT_ID: !Ref EnterpriseId
+      Events:
+        EsperSamAutoAppUpdater:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /updateme
+            Method: post
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  EsperSamAutoAppUpdaterApi:
+    Description: "API Gateway endpoint URL for Prod stage for EsperSamAutoAppUpdater function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/updateme/"
+  EsperSamAutoAppUpdaterFunction:
+    Description: "EsperSamAutoAppUpdater Lambda Function ARN"
+    Value: !GetAtt EsperSamAutoAppUpdaterFunction.Arn
+  EsperSamAutoAppUpdaterFunctionIamRole:
+    Description: "Implicit IAM Role created for EsperSamAutoAppUpdater function"
+    Value: !GetAtt EsperSamAutoAppUpdaterFunctionRole.Arn
