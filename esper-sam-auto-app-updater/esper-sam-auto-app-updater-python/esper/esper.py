@@ -1,6 +1,9 @@
-import esperclient
 import json
+import time
+
+import esperclient
 from esperclient.rest import ApiException
+
 
 class EsperAutoAppUpdater():
 
@@ -11,7 +14,7 @@ class EsperAutoAppUpdater():
         self.configuration.api_key['Authorization'] = key
         self.configuration.api_key_prefix['Authorization'] = 'Bearer'
         self.app_api_instance = esperclient.ApplicationApi(esperclient.ApiClient(self.configuration))
-        self.cmd_api_instance = esperclient.CommandsApi(esperclient.ApiClient(self.configuration))
+        self.cmd_api_instance = esperclient.CommandsV2Api(esperclient.ApiClient(self.configuration))
         self.dev_api_instance = esperclient.DeviceApi(esperclient.ApiClient(self.configuration))
 
     def get_device_guid(self, device_id):
@@ -29,7 +32,7 @@ class EsperAutoAppUpdater():
         try:
             all_apps_resp = self.app_api_instance.get_all_applications(self.eid, package_name=pkg)
             if len(all_apps_resp.results) == 1:
-                app_id =  all_apps_resp.results[0].id
+                app_id = all_apps_resp.results[0].id
         except ApiException as e:
             print("Exception when calling get_all_applications: %s\n" % e)
         return app_id
@@ -46,26 +49,47 @@ class EsperAutoAppUpdater():
         return latest_app_version
 
     def push_app_to_device(self, device_guid, app_version):
-        push_successful,error = False,None
-        command_args = esperclient.CommandArgs(app_version=app_version)
-        command = esperclient.CommandRequest(command='INSTALL', command_args=command_args)
+        command_status, error = False, None
+        command_pending = True
+        command_args = esperclient.V0CommandArgs(app_version=app_version)
+        command_request = esperclient.V0CommandRequest(command_type='DEVICE', devices=[device_guid], command='INSTALL',
+                                                       command_args=command_args, device_type='all')
         try:
-            api_response = self.cmd_api_instance.run_command(self.eid, device_guid, command)
-            print("Push response:")
-            print(api_response)
-            push_successful = True
+            api_response = self.cmd_api_instance.create_command(self.eid, command_request)
+            print("Push successful:")
+            command_status = True
+            command_id = api_response.id
+            while command_pending:
+                try:
+                    # get status list for command request
+                    status_api_response = self.cmd_api_instance.get_command_request_status(self.eid, command_id)
+                except ApiException as e:
+                    print("Exception when calling CommandsV2Api->get_command_request_status: %s\n" % e)
+                    return False, "Failed to get status"
+
+                command_state = status_api_response.results[0].state
+                if command_state == 'Command Success':
+                    return True, None
+                elif command_state == 'Command Failure':
+                    return False, "Failed to install app on device"
+                elif command_state == 'Command TimeOut':
+                    return False, 'No response from device'
+                print("Awaiting response from device on command status")
+
+                time.sleep(2)
         except ApiException as e:
             print("Exception when calling run_command: %s\n" % e)
             error_json = json.loads(e.body)
             error = error_json['message']
             error = error.strip()
-        return push_successful,error
+
+        return command_status, error
 
     def push_latest_app_version_if_needed(self, pkg, device_id, curr_buildnumber):
-        status,msg = "Suceeded",""
+        status, msg = "Succeeded", ""
         application_id = self.get_app_id(pkg)
         if application_id is not None:
-            print(f"Received application id from Esper]: {application_id} ({pkg})")
+            print(f"Received application id from Esper: {application_id} ({pkg})")
             latest_version = self.get_latest_app_version(application_id)
             print(f"Latest version of the app has build number: {latest_version.build_number}")
             print(f"id = {latest_version.id}")
@@ -78,7 +102,7 @@ class EsperAutoAppUpdater():
                 print("Update needed. Requesting update")
                 dev_guid = self.get_device_guid(device_id)
                 if dev_guid is not None:
-                    push_ok,err = self.push_app_to_device(dev_guid, latest_version.id)
+                    push_ok, err = self.push_app_to_device(dev_guid, latest_version.id)
                     if not push_ok:
                         msg = f"Unable to push {pkg}. {err}"
                         status = "Failed"
@@ -90,5 +114,5 @@ class EsperAutoAppUpdater():
         else:
             msg = f"Failed to acquire application ID for pkg {pkg}"
             status = "Failed"
-        
-        return status,msg
+
+        return status, msg
