@@ -11,13 +11,7 @@ This solution creates an AWS lambda with an API gateway in front of it. The cust
 * Clone the Repository to your PC:
 
 ```bash
-git clone git@github.com:esper-io/esper-api-sample-code.git
-```
-
-or
-
-```bash
-git clone https://github.com/esper-io/esper-api-sample-code.git
+git clone https://github.com/esper-io/esper-sample-solutions.git
 ```
 
 * Ensure you have an environment with [Python 3.7](https://www.python.org/downloads/) available.
@@ -52,12 +46,7 @@ Responses from the Lambda:
 
 Successfully pushed the newest app to the device:
 ```json
-{"status": "Request succeded", "msg": ""}
-```
-
-Application version already exists on the device:
-```json
-{"status": "Request failed", "msg": "Unable to push com.cpuid.cpu_z. App already exists on device"}
+{"status": "Request succeeded", "msg": ""}
 ```
 
 Application version already exists on the device:
@@ -143,6 +132,4 @@ In order to use this mechanism from the device, one would make use of the [Esper
 
 Please ensure you call this API only *once* per boot session. Also, limit the calls to the Lambda as much as possible.
 
-## More Reading
-
-Please see AWS' [Tutorial: Deploying a Hello World Application](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-hello-world.html) for more information.
+To know more about Esper capabilities, [get in touch with us for a demo](https://esper.io/book-demo?promo_name=demo-top&promo_id=demo-1&promo_creative=demo-1&promo_position=demo-top-right).
